@@ -243,6 +243,7 @@
                 const uniqueLinks = new Set();
                 const newProducts = [];
                 let currentSectionName = "Inne Produkty"; // Domyślna nazwa sekcji
+                let previousSectionElement = null;
 
                 // Przetwarzanie znalezionych linków
                 for (const link of productLinks) {
@@ -263,6 +264,23 @@
                                 'div[data-name]');
                             let sectionElement = link.closest('.recommended-products, .product-carousel'); // Najbliższy element karuzeli
 
+                             if (sectionElement) {
+                                // Jeśli znaleziono nowy element sekcji
+                                if (sectionElement !== previousSectionElement) {
+                                    // Pobierz nazwę sekcji z elementu karuzeli
+                                    const sectionTitleElement = sectionElement.querySelector('.section-title h2, .title-wrapper h2, .carousel-header h2'); // Szukaj różnych tytułów
+                                    if (sectionTitleElement) {
+                                        currentSectionName = sectionTitleElement.textContent.trim();
+                                    } else {
+                                        currentSectionName = sectionElement.id || sectionElement.className || "Inne Produkty"; // Fallback
+                                    }
+                                    previousSectionElement = sectionElement; // Zaktualizuj poprzedni element sekcji
+                                }
+                            } else {
+                                 currentSectionName = "Inne Produkty";
+                            }
+
+
                             if (textElement) {
                                 if (textElement.hasAttribute('data-name')) {
                                     productName = textElement.getAttribute('data-name');
@@ -271,18 +289,6 @@
                                 }
                             } else {
                                 productName = link.textContent.trim();
-                            }
-
-                            if (sectionElement) {
-                                // Pobierz nazwę sekcji z elementu karuzeli
-                                const sectionTitleElement = sectionElement.querySelector('.section-title h2, .title-wrapper h2, .carousel-header h2'); // Szukaj różnych tytułów
-                                if (sectionTitleElement) {
-                                    currentSectionName = sectionTitleElement.textContent.trim();
-                                } else {
-                                    currentSectionName = sectionElement.id || sectionElement.className || "Inne Produkty"; // Fallback
-                                }
-                            } else {
-                                currentSectionName = "Inne Produkty";
                             }
 
                             if (!productName || productName.length < 5) {
@@ -355,7 +361,7 @@
                 }
                 return productName;
 
-                // Krótka pauza między żądaniami, aby nie przeciążyć serwera
+                // Krótka pauza między żądaniami, aby nie przeciążać serwera
                 await new Promise(resolve => setTimeout(resolve, 500));
 
 
@@ -462,7 +468,7 @@
                         product.available = isAvailable;
                         product.lastChecked = timestamp;
 
-                        // Krótka pauza między żądaniami, aby nie przeciążyć serwera
+                        // Krótka pauza między żądaniami, aby nie przeciążać serwera
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     } catch (error) {
                         console.error(`Błąd sprawdzania produktu ${product.id}:`, error);
@@ -496,7 +502,7 @@
 
             // Grupowanie produktów po sekcjach
             const groupedProducts = {};
-            products.forEach(product => {
+             products.forEach(product => {
                 if (!groupedProducts[product.section]) {
                     groupedProducts[product.section] = [];
                 }

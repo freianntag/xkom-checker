@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Dostępności Produktów X-Kom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        h1 {
+            margin: 0;
+            color: #333;
+        }
+        .status {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        .available {
+            color: green;
+            font-weight: bold;
+        }
+        .unavailable {
+            color: red;
+        }
+        .product-link {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .product-link:hover {
+            text-decoration: underline;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        #lastChecked {
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #0066cc;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .time-since {
+            color: #666;
+            font-size: 0.9em;
+        }
+        #urlForm {
+            margin-bottom: 20px;
+        }
+        #urlInput {
+            width: 70%;
+            padding: 8px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Monitor Dostępności Produktów X-Kom</h1>
+    </div>
+
+    <div class="status">
+        <h3>Informacje o monitoringu</h3>
+        <p>Narzędzie sprawdza dostępność produktów z wybranej strony X-Kom poprzez weryfikację obecności przycisku "Dodaj do koszyka" na stronie produktu.</p>
+        <p id="lastChecked">Ostatnie sprawdzenie: Nigdy</p>
+        <p id="nextCheck">Następne sprawdzenie: Za 1 godzinę</p>
+    </div>
+
+    <div id="urlForm">
+        <h3>Wybierz stronę z produktami do monitorowania</h3>
+        <input type="text" id="urlInput" placeholder="URL strony z produktami (np. https://www.x-kom.pl/lp/technologia-po-prostu)" value="https://www.x-kom.pl/lp/technologia-po-prostu">
+        <button id="fetchProductsButton">Pobierz produkty</button>
+    </div>
+
+    <div class="controls">
+        <button id="checkNowButton">Sprawdź dostępność teraz</button>
+        <button id="resetButton">Wyczyść dane</button>
+        <button id="toggleAutoRefreshButton">Zatrzymaj auto-odświeżanie</button>
+        <span id="spinner" class="spinner hidden"></span>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div id="results">
+        <h2>Wyniki monitorowania</h2>
+        <table id="productsTable">
+            <thead>
+                <tr>
+                    <th>Nazwa produktu</th>
+                    <th>Link</th>
+                    <th>Dostępność</th>
+                    <th>Historia zmian</th>
+                </tr>
+            </thead>
+            <tbody id="productsBody">
+                <!-- Dane produktów będą tutaj wstawiane dynamicznie -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Główne ustawienia
+        const CORS_PROXY = 'https://corsproxy.io/?';
+        const REFRESH_INTERVAL = 60 * 60 * 1000; // 1 godzina w milisekundach
+        let products = [];
+        let autoRefreshEnabled = true;
+        let refreshTimer = null;
+
+        // Elementy DOM
+        const productsTable = document.getElementById('productsBody');
+        const lastCheckedEl = document.getElementById('lastChecked');
+        const nextCheckEl = document.getElementById('nextCheck');
+        const spinner = document.getElementById('spinner');
+        const errorEl = document.getElementById('error');
+        const fetchProductsButton = document.getElementById('fetchProductsButton');
+        const checkNowButton = document.getElementById('checkNowButton');
+        const resetButton = document.getElementById('resetButton');
+        const toggleAutoRefreshButton = document.getElementById('toggleAutoRefreshButton');
+        const urlInput = document.getElementById('urlInput');
+
+        // Funkcja inicjalizująca
+        function init() {
+            // Ładowanie zapisanych produktów z localStorage
+            loadFromStorage();
+            
+            // Ustawienie obsługi zdarzeń dla przycisków
+            fetchProductsButton.addEventListener('click', fetchProductsFromUrl);
+            checkNowButton.addEventListener('click', checkAvailability);
+            resetButton.addEventListener('click', resetData);
+            toggleAutoRefreshButton.addEventListener('click', toggleAutoRefresh);
+            
+            // Uruchomienie automatycznego odświeżania
+            startAutoRefresh();
+            
+            // Wyświetlenie ostatnio zapisanych wyników
+            updateTable();
+        }
+
+        // Funkcja pobierająca produkty ze strony X-Kom
+        async function fetchProductsFromUrl() {
+            showSpinner();
+            hideError();
+            
+            const url = urlInput.value.trim();
+            if (!url || !url.includes('x-kom.pl')) {
+                showError('Proszę podać prawidłowy adres URL strony X-Kom');
+                hideSpinner();
+                return;
+            }
+            
+            try {
+                // Pobieranie strony przez CORS proxy
+                const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+                const html = await response.text();
+                
+                // Parsowanie HTML do obiektu DOM
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Wyszukiwanie linków do produktów
+                const productLinks = Array.from(doc.querySelectorAll('a[href*="/p/"]'));
+                
+                // Filtrowanie unikalnych linków produktów
+                const uniqueLinks = new Set();
+                const newProducts = [];
+                
+                productLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href && href.includes('/p/')) {
+                        // Wyodrębnij pełny URL produktu
+                        const fullUrl = href.startsWith('http') ? href : `https://www.x-kom.pl${href}`;
+                        const productId = extractProductId(fullUrl);
+                        
+                        if (productId && !uniqueLinks.has(productId)) {
+                            uniqueLinks.add(productId);
+                            
+                            // Szukaj nazwy produktu w najbliższym elemencie zawierającym tekst
+                            let productName = '';
+                            let textElement = link.querySelector('h3') || link.querySelector('.name') || link;
+                            productName = textElement.textContent.trim();
+                            
+                            newProducts.push({
+                                id: productId,
+                                name: productName || `Produkt ${productId}`,
+                                url: fullUrl,
+                                available: null,
+                                lastChecked: null,
+                                history: []
+                            });
+                        }
+                    }
+                });
+                
+                // Aktualizacja listy produktów
+                if (newProducts.length > 0) {
+                    products = mergeProducts(products, newProducts);
+                    saveToStorage();
+                    updateTable();
+                    checkAvailability();
+                } else {
+                    showError('Nie znaleziono produktów na podanej stronie');
+                }
+            } catch (error) {
+                console.error('Błąd podczas pobierania produktów:', error);
+                showError('Wystąpił błąd podczas pobierania listy produktów. Sprawdź konsolę developera.');
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Łączenie istniejących produktów z nowymi
+        function mergeProducts(existingProducts, newProducts) {
+            const productMap = {};
+            
+            // Najpierw dodaj istniejące produkty do mapy
+            existingProducts.forEach(product => {
+                productMap[product.id] = product;
+            });
+            
+            // Dodaj lub zaktualizuj nowymi produktami
+            newProducts.forEach(product => {
+                if (productMap[product.id]) {
+                    // Aktualizuj tylko nazwę, zachowaj historię i status
+                    productMap[product.id].name = product.name;
+                    productMap[product.id].url = product.url;
+                } else {
+                    // Dodaj nowy produkt
+                    productMap[product.id] = product;
+                }
+            });
+            
+            // Konwertuj mapę z powrotem do tablicy
+            return Object.values(productMap);
+        }
+
+        // Funkcja wyodrębniająca ID produktu z URL
+        function extractProductId(url) {
+            const match = url.match(/\/p\/(\d+)-/);
+            return match ? match[1] : null;
+        }
+
+        // Funkcja sprawdzająca dostępność produktów
+        async function checkAvailability() {
+            if (products.length === 0) {
+                showError('Brak produktów do sprawdzenia. Najpierw pobierz listę produktów.');
+                return;
+            }
+            
+            showSpinner();
+            hideError();
+            
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+            
+            lastCheckedEl.textContent = `Ostatnie sprawdzenie: ${timestamp}`;
+            
+            // Aktualizacja czasu następnego sprawdzenia
+            updateNextCheckTime();
+            
+            try {
+                // Sprawdzanie każdego produktu
+                for (const product of products) {
+                    try {
+                        const response = await fetch(CORS_PROXY + encodeURIComponent(product.url));
+                        const html = await response.text();
+                        
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // Sprawdzenie czy istnieje przycisk "Dodaj do koszyka"
+                        const addToCartButton = doc.querySelector('button[title="Dodaj do koszyka"]') || 
+                                                doc.querySelector('button:contains("Dodaj do koszyka")');
+                        
+                        const wasAvailable = product.available;
+                        const isAvailable = addToCartButton !== null;
+                        
+                        // Aktualizacja statusu dostępności
+                        product.available = isAvailable;
+                        product.lastChecked = timestamp;
+                        
+                        // Dodanie wpisu do historii tylko jeśli status się zmienił
+                        if (wasAvailable !== isAvailable) {
+                            product.history.push({
+                                timestamp: timestamp,
+                                available: isAvailable
+                            });
+                            
+                            // Ograniczenie historii do 10 ostatnich zmian
+                            if (product.history.length > 10) {
+                                product.history = product.history.slice(-10);
+                            }
+                        }
+                        
+                        // Krótka pauza między żądaniami, aby nie przeciążać serwera
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } catch (error) {
+                        console.error(`Błąd sprawdzania produktu ${product.id}:`, error);
+                    }
+                }
+                
+                // Zapisanie zaktualizowanych danych
+                saveToStorage();
+                
+                // Aktualizacja tabeli
+                updateTable();
+            } catch (error) {
+                console.error('Błąd podczas sprawdzania dostępności:', error);
+                showError('Wystąpił błąd podczas sprawdzania dostępności produktów.');
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Funkcja aktualizująca tabelę z produktami
+        function updateTable() {
+            productsTable.innerHTML = '';
+            
+            if (products.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4">Brak produktów do wyświetlenia. Użyj przycisku "Pobierz produkty".</td>';
+                productsTable.appendChild(row);
+                return;
+            }
+            
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                
+                // Nazwa produktu
+                const nameCell = document.createElement('td');
+                nameCell.textContent = product.name;
+                row.appendChild(nameCell);
+                
+                // Link do produktu
+                const linkCell = document.createElement('td');
+                const link = document.createElement('a');
+                link.href = product.url;
+                link.textContent = 'Zobacz produkt';
+                link.className = 'product-link';
+                link.target = '_blank';
+                linkCell.appendChild(link);
+                row.appendChild(linkCell);
+                
+                // Status dostępności
+                const availabilityCell = document.createElement('td');
+                if (product.available === null) {
+                    availabilityCell.textContent = 'Nie sprawdzono';
+                } else {
+                    availabilityCell.textContent = product.available ? 'Dostępny' : 'Niedostępny';
+                    availabilityCell.className = product.available ? 'available' : 'unavailable';
+                }
+                
+                // Dodanie informacji o ostatnim sprawdzeniu
+                if (product.lastChecked) {
+                    const timeSince = document.createElement('div');
+                    timeSince.className = 'time-since';
+                    timeSince.textContent = `Sprawdzono: ${product.lastChecked}`;
+                    availabilityCell.appendChild(timeSince);
+                }
+                
+                row.appendChild(availabilityCell);
+                
+                // Historia zmian
+                const historyCell = document.createElement('td');
+                if (product.history && product.history.length > 0) {
+                    product.history.slice().reverse().forEach(entry => {
+                        const historyEntry = document.createElement('div');
+                        historyEntry.textContent = `${entry.timestamp}: ${entry.available ? 'Dostępny' : 'Niedostępny'}`;
+                        historyEntry.className = entry.available ? 'available' : 'unavailable';
+                        historyCell.appendChild(historyEntry);
+                    });
+                } else {
+                    historyCell.textContent = 'Brak historii zmian';
+                }
+                row.appendChild(historyCell);
+                
+                productsTable.appendChild(row);
+            });
+        }
+
+        // Funkcja zapisująca dane do localStorage
+        function saveToStorage() {
+            localStorage.setItem('xkom-products', JSON.stringify(products));
+            localStorage.setItem('xkom-last-checked', lastCheckedEl.textContent);
+        }
+
+        // Funkcja ładująca dane z localStorage
+        function loadFromStorage() {
+            const savedProducts = localStorage.getItem('xkom-products');
+            const savedLastChecked = localStorage.getItem('xkom-last-checked');
+            
+            if (savedProducts) {
+                products = JSON.parse(savedProducts);
+            }
+            
+            if (savedLastChecked) {
+                lastCheckedEl.textContent = savedLastChecked;
+            }
+        }
+
+        // Funkcja resetująca wszystkie dane
+        function resetData() {
+            if (confirm('Czy na pewno chcesz usunąć wszystkie zapisane dane?')) {
+                products = [];
+                lastCheckedEl.textContent = 'Ostatnie sprawdzenie: Nigdy';
+                nextCheckEl.textContent = 'Następne sprawdzenie: Za 1 godzinę';
+                localStorage.removeItem('xkom-products');
+                localStorage.removeItem('xkom-last-checked');
+                updateTable();
+            }
+        }
+
+        // Funkcje do pokazywania i ukrywania wskaźnika ładowania
+        function showSpinner() {
+            spinner.classList.remove('hidden');
+        }
+        
+        function hideSpinner() {
+            spinner.classList.add('hidden');
+        }
+
+        // Funkcje do pokazywania i ukrywania komunikatów o błędach
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        function hideError() {
+            errorEl.classList.add('hidden');
+        }
+
+        // Funkcja uruchamiająca automatyczne odświeżanie
+        function startAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            
+            if (autoRefreshEnabled) {
+                refreshTimer = setInterval(() => {
+                    checkAvailability();
+                }, REFRESH_INTERVAL);
+                
+                updateNextCheckTime();
+                toggleAutoRefreshButton.textContent = 'Zatrzymaj auto-odświeżanie';
+            }
+        }
+
+        // Funkcja przełączająca automatyczne odświeżanie
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+                toggleAutoRefreshButton.textContent = 'Zatrzymaj auto-odświeżanie';
+            } else {
+                if (refreshTimer) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+                nextCheckEl.textContent = 'Auto-odświeżanie wyłączone';
+                toggleAutoRefreshButton.textContent = 'Włącz auto-odświeżanie';
+            }
+        }
+
+        // Funkcja aktualizująca czas następnego sprawdzenia
+        function updateNextCheckTime() {
+            if (!autoRefreshEnabled) {
+                nextCheckEl.textContent = 'Auto-odświeżanie wyłączone';
+                return;
+            }
+            
+            const nextTime = new Date(Date.now() + REFRESH_INTERVAL);
+            nextCheckEl.textContent = `Następne sprawdzenie: ${nextTime.toLocaleString()}`;
+        }
+
+        // Uruchomienie aplikacji po załadowaniu strony
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

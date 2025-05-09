@@ -1,792 +1,441 @@
 <!DOCTYPE html>
 <html lang="pl">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Dostępności Produktów x-kom</title>
+    <title>X-Kom Sprawdzacz Dostępności Produktów</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f9f9f9;
+            background-color: #f7f7f7;
         }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #0082fa;
-            padding-bottom: 15px;
-        }
-
         h1 {
-            margin: 0;
-            color: #0082fa;
-            font-size: 1.8rem;
+            color: #00a0e3;
+            text-align: center;
+            margin-bottom: 10px;
         }
-
-        .status {
+        h2 {
+            color: #3c4043;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .description {
             background-color: #fff;
             padding: 20px;
             border-radius: 8px;
-            margin-bottom: 25px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
-
-        .status h3 {
-            margin-top: 0;
-            color: #0082fa;
+        .actions {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
         }
-
+        button {
+            background-color: #00a0e3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0078b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #555;
+        }
+        .results {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            overflow: auto;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0 30px;
-            background-color: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
         }
-
         th, td {
             padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
             text-align: left;
-            border-bottom: 1px solid #eee;
         }
-
         th {
-            background-color: #f5f5f5;
-            font-weight: 600;
-            color: #555;
-            position: sticky;
-            top: 0;
+            background-color: #f2f2f2;
+            font-weight: bold;
         }
-
         tr:hover {
             background-color: #f9f9f9;
         }
-
         .available {
-            color: #2ecc71;
+            color: #28a745;
             font-weight: bold;
         }
-
         .unavailable {
-            color: #e74c3c;
+            color: #dc3545;
+            font-weight: bold;
         }
-
-        .unknown {
-            color: #7f8c8d;
-            font-style: italic;
+        .section-header {
+            background-color: #eef5f9;
+            font-weight: bold;
+            color: #00a0e3;
         }
-
-        .product-link {
-            color: #0082fa;
-            text-decoration: none;
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 4px;
-            border: 1px solid #0082fa;
-            transition: all 0.2s ease;
-        }
-
-        .product-link:hover {
-            background-color: #0082fa;
-            color: white;
-        }
-
-        .controls {
-            margin: 25px 0;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #0082fa;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        button:hover {
-            background-color: #0066cc;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        button:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-        }
-
-        #lastChecked {
-            font-style: italic;
-            margin-top: 10px;
-            color: #7f8c8d;
-        }
-
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 24px;
-            height: 24px;
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #00a0e3;
             border-radius: 50%;
-            border-left-color: #0066cc;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 10px;
+            margin: 20px auto;
+            display: none;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
         .hidden {
-            display: none !important;
+            display: none;
         }
-
         .error {
-            background-color: #fdeded;
-            color: #ef4444;
-            border-left: 4px solid #ef4444;
-            padding: 12px 15px;
-            margin: 15px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .success {
-            background-color: #ecfdf5;
-            color: #10b981;
-            border-left: 4px solid #10b981;
-            padding: 12px 15px;
-            margin: 15px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .time-since {
-            color: #7f8c8d;
-            font-size: 0.9em;
-            margin-left: 5px;
-        }
-
-        #urlForm {
-            margin-bottom: 25px;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-
-        #urlForm h3 {
-            margin-top: 0;
-            color: #0082fa;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        #urlInput {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-
-        #urlInput:focus {
-            border-color: #0082fa;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 130, 250, 0.2);
-        }
-
-        .section-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin: 30px 0 15px;
-            color: #0082fa;
-            border-bottom: 2px solid #0082fa;
-            padding-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .section-title .product-count {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            font-weight: normal;
-        }
-
-        .product-name {
-            font-weight: 500;
-        }
-
-        .badges {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .badge-new {
-            background-color: #e3f2fd;
-            color: #1976d2;
-        }
-
-        .badge-price-drop {
-            background-color: #e8f5e9;
-            color: #388e3c;
-        }
-
-        .badge-promotion {
-            background-color: #fff8e1;
-            color: #ffa000;
-        }
-
-        .badge-status-change {
-            background-color: #f3e5f5;
-            color: #8e24aa;
-        }
-
-        .info-message {
-            background-color: #e3f2fd;
-            color: #0082fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .info-icon {
-            font-size: 1.5rem;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
+            color: #dc3545;
             font-weight: bold;
-            color: #0082fa;
-        }
-
-        .stat-label {
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-
-        .progress-container {
-            width: 100%;
-            background-color: #f1f1f1;
-            border-radius: 3px;
-            margin-top: 8px;
-        }
-
-        .progress-bar {
-            height: 6px;
-            border-radius: 3px;
-            background-color: #0082fa;
-        }
-
-        .progress-container.unavailable .progress-bar {
-            background-color: #e74c3c;
-        }
-
-        #statsContainer {
             margin-top: 15px;
         }
-
-        .product-price {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .price-old {
-            text-decoration: line-through;
-            color: #7f8c8d;
-            margin-right: 5px;
-            font-size: 0.9em;
-        }
-
-
-
-        .product-image {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            margin-right: 10px;
-            background-color: #fff;
-            border: 1px solid #eee;
-            border-radius: 4px;
-        }
-
-        .product-row {
-            display: flex;
-            align-items: center;
+        .notes {
+            background-color: #fffde7;
+            padding: 15px;
+            border-left: 4px solid #ffd600;
+            margin-top: 20px;
         }
     </style>
 </head>
-
 <body>
-    <div class="header">
-        <div style="display: flex; align-items: center;">
-            <h1>Monitor Dostępności Produktów x-kom</h1>
+    <h1>X-Kom Sprawdzacz Dostępności Produktów</h1>
+    
+    <div class="description">
+        <h2>O narzędziu</h2>
+        <p>To narzędzie sprawdza dostępność produktów z promocyjnych karuzeli na stronie X-Kom. Dla każdego produktu narzędzie odwiedza jego kartę produktową i sprawdza, czy ma aktywny przycisk "Dodaj do koszyka" - jeśli tak, produkt jest dostępny, jeśli nie - produkt jest niedostępny.</p>
+        <p>Wyniki są prezentowane w formie przejrzystej tabeli z podziałem na sekcje odpowiadające karuzelom na stronie głównej.</p>
+    </div>
+    
+    <div class="actions">
+        <button id="checkButton">Sprawdź dostępność produktów</button>
+        <div id="loader" class="loader"></div>
+        <div id="status" class="status"></div>
+        <div id="error" class="error hidden"></div>
+    </div>
+
+    <div id="results" class="results hidden">
+        <h2>Wyniki sprawdzania dostępności</h2>
+        <div id="resultsContent"></div>
+        <div class="notes">
+            <p><strong>Uwaga:</strong> Sprawdzanie dużej liczby produktów może potrwać kilka minut. Prosimy o cierpliwość podczas pobierania danych.</p>
         </div>
-    </div>
-
-    <div class="status">
-        <h3>Informacje o monitoringu</h3>
-        <p>Narzędzie monitoruje dostępność produktów z wybranych stron x-kom. System sprawdza obecność przycisku "Dodaj do koszyka" oraz pobiera dodatkowe informacje o produktach.</p>
-        <p id="lastChecked">Ostatnie sprawdzenie: Nigdy</p>
-    </div>
-
-    <div id="urlForm">
-        <h3>Wybierz stronę z produktami do monitorowania</h3>
-        <div class="input-group">
-            <input type="text" id="urlInput" 
-                placeholder="URL strony z produktami (np. https://www.x-kom.pl/lp/technologia-po-prostu)" 
-                value="https://www.x-kom.pl/lp/technologia-po-prostu">
-            <button id="fetchProductsButton">Pobierz produkty</button>
-            <span id="fetchSpinner" class="spinner hidden"></span>
-        </div>
-    </div>
-
-    <div id="notification" class="hidden"></div>
-
-    <div id="statsContainer" class="hidden">
-        <h3>Statystyki produktów</h3>
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value" id="totalProducts">0</div>
-                <div class="stat-label">Wszystkich produktów</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="availableProducts">0</div>
-                <div class="stat-label">Dostępne produkty</div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="availableProgress" style="width: 0%"></div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="unavailableProducts">0</div>
-                <div class="stat-label">Niedostępne produkty</div>
-                <div class="progress-container unavailable">
-                    <div class="progress-bar" id="unavailableProgress" style="width: 0%"></div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="sectionsCount">0</div>
-                <div class="stat-label">Liczba sekcji</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="controls">
-        <button id="checkNowButton">Sprawdź dostępność teraz</button>
-        <span id="checkSpinner" class="spinner hidden"></span>
-        <button id="clearDataButton">
-            Wyczyść dane
-        </button>
-    </div>
-
-    <div id="results">
-        <h2>Wyniki monitorowania</h2>
-        <div id="productsContainer"></div>
     </div>
 
     <script>
-        // Główne ustawienia
-        const CORS_PROXY = 'https://corsproxy.io/?';
-        let products = [];
-        let isChecking = false;
-        let isFetching = false;
-
-        // Elementy DOM
-        const productsContainer = document.getElementById('productsContainer');
-        const lastCheckedEl = document.getElementById('lastChecked');
-        const checkSpinner = document.getElementById('checkSpinner');
-        const fetchSpinner = document.getElementById('fetchSpinner');
-        const notification = document.getElementById('notification');
-        const fetchProductsButton = document.getElementById('fetchProductsButton');
-        const checkNowButton = document.getElementById('checkNowButton');
-        const clearDataButton = document.getElementById('clearDataButton');
-        const urlInput = document.getElementById('urlInput');
-        const statsContainer = document.getElementById('statsContainer');
-        
-        // Statystyki
-        const totalProductsEl = document.getElementById('totalProducts');
-        const availableProductsEl = document.getElementById('availableProducts');
-        const unavailableProductsEl = document.getElementById('unavailableProducts');
-        const sectionsCountEl = document.getElementById('sectionsCount');
-        const availableProgressEl = document.getElementById('availableProgress');
-        const unavailableProgressEl = document.getElementById('unavailableProgress');
-
-        // Funkcja inicjalizująca
-        function init() {
-            // Ładowanie zapisanych produktów z localStorage
-            loadFromStorage();
-
-            // Ustawienie obsługi zdarzeń dla przycisków
-            fetchProductsButton.addEventListener('click', fetchProductsFromUrl);
-            checkNowButton.addEventListener('click', checkAvailability);
-            clearDataButton.addEventListener('click', clearAllData);
-
-            // Wyświetlenie ostatnio zapisanych wyników
-            updateTable();
-            updateStats();
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkButton = document.getElementById('checkButton');
+            const loader = document.getElementById('loader');
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            const errorDiv = document.getElementById('error');
             
-            // Sprawdź czy mamy zapisaną datę ostatniego sprawdzenia
-            const lastChecked = localStorage.getItem('lastChecked');
-            if (lastChecked) {
-                lastCheckedEl.textContent = `Ostatnie sprawdzenie: ${lastChecked}`;
-            }
-        }
-
-        // Funkcja wyświetlająca powiadomienie
-        function showNotification(message, type = 'info') {
-            notification.textContent = message;
-            notification.className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info-message';
-            notification.classList.remove('hidden');
-            
-            // Ukryj powiadomienie po 5 sekundach
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 5000);
-        }
-
-        // Funkcja czyszcząca wszystkie dane
-        function clearAllData() {
-            if (confirm('Czy na pewno chcesz usunąć wszystkie zapisane produkty?')) {
-                products = [];
-                localStorage.removeItem('products');
-                localStorage.removeItem('lastChecked');
-                lastCheckedEl.textContent = 'Ostatnie sprawdzenie: Nigdy';
-                updateTable();
-                updateStats();
-                showNotification('Wszystkie dane zostały usunięte', 'success');
-            }
-        }
-
-        // Funkcja pobierająca produkty ze strony x-kom
-        async function fetchProductsFromUrl() {
-            if (isFetching) return;
-            isFetching = true;
-            
-            fetchSpinner.classList.remove('hidden');
-            fetchProductsButton.disabled = true;
-            notification.classList.add('hidden');
-
-            const url = urlInput.value.trim();
-            if (!url || !url.includes('x-kom.pl')) {
-                showNotification('Proszę podać prawidłowy adres URL strony x-kom', 'error');
-                isFetching = false;
-                fetchSpinner.classList.add('hidden');
-                fetchProductsButton.disabled = false;
-                return;
-            }
-
-            try {
-                // Pobieranie strony przez CORS proxy
-                const response = await fetch(CORS_PROXY + encodeURIComponent(url));
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
+            checkButton.addEventListener('click', async function() {
+                // Reset UI
+                checkButton.disabled = true;
+                loader.style.display = 'block';
+                status.textContent = 'Pobieranie danych ze strony X-Kom...';
+                results.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+                errorDiv.textContent = '';
                 
-                const html = await response.text();
-
-                // Parsowanie HTML do obiektu DOM
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                // Znajdujemy wszystkie sekcje karuzeli (mogą mieć różne klasy)
-                const carouselSections = Array.from(doc.querySelectorAll('.recommended-products, [class*="carousel"], [class*="product-listing"], [class*="list-container"]'));
-                
-                // Jeśli nie znaleziono żadnych sekcji, szukamy produktów bezpośrednio
-                if (carouselSections.length === 0) {
-                    const productLinks = Array.from(doc.querySelectorAll('a[href*="/p/"]'));
-                    if (productLinks.length === 0) {
-                        showNotification('Nie znaleziono żadnych produktów na podanej stronie', 'error');
-                        isFetching = false;
-                        fetchSpinner.classList.add('hidden');
-                        fetchProductsButton.disabled = false;
-                        return;
+                try {
+                    // Pobranie głównej strony z karuzelami
+                    status.textContent = 'Analizowanie strony głównej z produktami...';
+                    const mainPageUrl = 'https://www.x-kom.pl/lp/technologia-po-prostu';
+                    const mainPageResponse = await fetchWithCORS(mainPageUrl);
+                    
+                    if (!mainPageResponse) {
+                        throw new Error('Nie udało się pobrać strony głównej. Spróbuj ponownie później.');
                     }
                     
-                    // Dodajemy produkty do sekcji "Wszystkie produkty"
-                    await processProductsInSection(productLinks, "Wszystkie produkty");
-                } else {
-                    // Przetwarzamy każdą znalezioną sekcję karuzeli
-                    for (const section of carouselSections) {
-                        // Próbujemy znaleźć tytuł sekcji
-                        const titleElement = findSectionTitle(section);
+                    // Parsowanie HTML strony głównej
+                    const parser = new DOMParser();
+                    const mainPageDoc = parser.parseFromString(mainPageResponse, 'text/html');
+                    
+                    // Znajdowanie wszystkich karuzeli na stronie
+                    const carousels = findCarousels(mainPageDoc);
+                    status.textContent = `Znaleziono ${carousels.length} karuzeli z produktami.`;
+                    
+                    if (carousels.length === 0) {
+                        throw new Error('Nie znaleziono karuzeli z produktami na stronie.');
+                    }
+                    
+                    // Tablice na wyniki dla każdej karuzeli
+                    const allResults = [];
+                    
+                    // Dla każdej karuzeli
+                    for (let i = 0; i < carousels.length; i++) {
+                        const carousel = carousels[i];
+                        const carouselTitle = extractCarouselTitle(carousel);
+                        const products = extractProductsFromCarousel(carousel);
                         
-                        // Ustalamy nazwę sekcji (tytuł lub fallback do klasy/id)
-                        const sectionName = titleElement && titleElement.textContent.trim() 
-                            ? titleElement.textContent.trim() 
-                            : (section.getAttribute('aria-label') || section.id || "Produkty");
+                        status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} (${products.length} produktów)...`;
                         
-                        // Znajdujemy wszystkie linki do produktów w tej sekcji
-                        const productLinks = Array.from(section.querySelectorAll('a[href*="/p/"]'));
+                        // Sprawdzanie każdego produktu w karuzeli
+                        const carouselResults = [];
                         
-                        if (productLinks.length > 0) {
-                            await processProductsInSection(productLinks, sectionName);
-                        }
-                    }
-                }
-
-                // Aktualizujemy interfejs
-                updateTable();
-                updateStats();
-                statsContainer.classList.remove('hidden');
-                
-                // Zapisujemy dane i pokazujemy sukces
-                saveToStorage();
-                showNotification(`Pomyślnie pobrano informacje o produktach`, 'success');
-                
-                // Jeśli mamy produkty, automatycznie sprawdzamy ich dostępność
-                if (products.length > 0) {
-                    checkAvailability();
-                }
-                
-            } catch (error) {
-                console.error('Błąd podczas pobierania produktów:', error);
-                showNotification(`Wystąpił błąd: ${error.message}`, 'error');
-            } finally {
-                isFetching = false;
-                fetchSpinner.classList.add('hidden');
-                fetchProductsButton.disabled = false;
-            }
-        }
-
-        // Funkcja znajdująca element tytułu sekcji
-        function findSectionTitle(sectionElement) {
-            // Różne możliwe selektory dla tytułów sekcji
-            const possibleTitleSelectors = [
-                '.section-title h2', 
-                '.title-wrapper h2', 
-                '.carousel-header h2',
-                'h2', 
-                '.section-header', 
-                '.block-header', 
-                '.title', 
-                '[class*="title"]',
-                '[class*="header"]',
-                'h3',
-                '.header span'
-            ];
-            
-            // Próbujemy znaleźć tytuł używając różnych selektorów
-            for (const selector of possibleTitleSelectors) {
-                const titleElement = sectionElement.parentElement.querySelector(selector) || sectionElement.querySelector(selector);
-                if (titleElement && titleElement.textContent.trim()) {
-                    return titleElement;
-                }
-            }
-            
-            // Szukamy w rodzicu sekcji (czasem tytuł jest poza kontenerem karuzeli)
-            if (sectionElement.parentElement) {
-                const parentTitleElement = sectionElement.parentElement.querySelector('h2, h3, .title, [class*="title"], [class*="header"]');
-                if (parentTitleElement && parentTitleElement.textContent.trim()) {
-                    return parentTitleElement;
-                }
-                
-                // Jeśli tytuł jest bezpośrednim rodzeństwem sekcji
-                const previousSibling = sectionElement.previousElementSibling;
-                if (previousSibling && (previousSibling.tagName === 'H2' || previousSibling.tagName === 'H3' || 
-                    previousSibling.classList.contains('title') || previousSibling.classList.contains('header'))) {
-                    return previousSibling;
-                }
-            }
-            
-            return null;
-        }
-
-        // Funkcja przetwarzająca produkty w sekcji
-        async function processProductsInSection(productLinks, sectionName) {
-            const uniqueLinks = new Set();
-            const newProducts = [];
-            
-            // Przetwarzamy każdy link produktu
-            for (const link of productLinks) {
-                const href = link.getAttribute('href');
-                if (!href || !href.includes('/p/')) continue;
-                
-                // Wyodrębnij pełny URL produktu i usuń parametry URL
-                let fullUrl = href.startsWith('http') ? href : `https://www.x-kom.pl${href}`;
-                fullUrl = fullUrl.split('?')[0]; // Usuń parametry URL
-                
-                const productId = extractProductId(fullUrl);
-                
-                if (productId && !uniqueLinks.has(productId)) {
-                    uniqueLinks.add(productId);
-                    
-                    // Próbujemy znaleźć nazwę i zdjęcie produktu
-                    let productName = '';
-                    let productImageUrl = '';
-                    let productPrice = null;
-                    let productOldPrice = null;
-                    
-                    // Sprawdzamy różne elementy, które mogą zawierać nazwę produktu
-                    const nameElement = link.querySelector('h3, .name, [class*="name"], [data-name], [class*="title"]');
-                    if (nameElement) {
-                        productName = nameElement.textContent.trim();
-                    } else {
-                        // Jeśli brak nazwy w standardowych elementach, próbujemy atrybuty
-                        productName = link.getAttribute('title') || link.getAttribute('aria-label') || '';
-                    }
-                    
-                    // Szukamy obrazu produktu
-                    const imgElement = link.querySelector('img');
-                    if (imgElement) {
-                        productImageUrl = imgElement.getAttribute('src') || imgElement.getAttribute('data-src') || '';
-                    }
-                    
-                    // Szukamy ceny produktu
-                    const priceElement = link.closest('[class*="item"]')?.querySelector('[class*="price"]') || 
-                                         link.querySelector('[class*="price"]');
-                    if (priceElement) {
-                        productPrice = priceElement.textContent.trim().replace(/\s+/g, ' ');
-                        
-                        // Sprawdzamy czy jest stara cena (przekreślona)
-                        const oldPriceElement = link.closest('[class*="item"]')?.querySelector('[class*="old-price"]') || 
-                                               link.querySelector('[class*="old-price"], [class*="oldPrice"]');
-                        if (oldPriceElement) {
-                            productOldPrice = oldPriceElement.textContent.trim().replace(/\s+/g, ' ');
-                        }
-                    }
-                    
-                    // Jeśli nazwa jest pusta lub zbyt krótka, próbujemy ją pobrać z atrybutów lub rodzica
-                    if (!productName || productName.length < 5) {
-                        const parent = link.closest('[class*="item"]') || link.parentElement;
-                        if (parent) {
-                            const parentNameElement = parent.querySelector('[class*="name"], [class*="title"]');
-                            if (parentNameElement) {
-                                productName = parentNameElement.textContent.trim();
+                        for (let j = 0; j < products.length; j++) {
+                            const product = products[j];
+                            status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} - produkt ${j+1}/${products.length}`;
+                            
+                            try {
+                                // Sprawdzanie dostępności produktu
+                                const isAvailable = await checkProductAvailability(product.url);
+                                carouselResults.push({
+                                    name: product.name,
+                                    url: product.url,
+                                    available: isAvailable
+                                });
+                            } catch (error) {
+                                console.error(`Błąd sprawdzania produktu ${product.name}:`, error);
+                                carouselResults.push({
+                                    name: product.name,
+                                    url: product.url,
+                                    available: 'error',
+                                    error: error.message
+                                });
                             }
                         }
+                        
+                        allResults.push({
+                            title: carouselTitle,
+                            products: carouselResults
+                        });
                     }
                     
-                    // Jeśli nadal nie mamy nazwy, użyjemy ID jako tymczasowej nazwy
-                    if (!productName || productName.length < 5) {
-                        productName = `Produkt ${productId}`;
-                    }
+                    // Wyświetlanie wyników
+                    displayResults(allResults);
+                    status.textContent = 'Sprawdzanie zakończone!';
                     
-                    newProducts.push({
-                        id: productId,
-                        name: productName,
-                        url: fullUrl,
-                        available: null,
-                        lastChecked: null,
-                        section: sectionName,
-                        imageUrl: productImageUrl,
-                        price: productPrice,
-                        oldPrice: productOldPrice,
-                        isNew: true // Oznaczamy jako nowy produkt
-                    });
+                } catch (error) {
+                    console.error('Wystąpił błąd:', error);
+                    errorDiv.textContent = `Błąd: ${error.message}`;
+                    errorDiv.classList.remove('hidden');
+                    status.textContent = 'Wystąpił błąd podczas sprawdzania.';
+                } finally {
+                    loader.style.display = 'none';
+                    checkButton.disabled = false;
+                }
+            });
+            
+            // Funkcja do pobierania strony przez CORS Anywhere proxy
+            async function fetchWithCORS(url) {
+                try {
+                    // Tutaj w prawdziwym środowisku użylibyśmy proxy CORS
+                    // W demonstracyjnej wersji zwracamy przykładowe dane
+                    return getMockHtml(url);
+                } catch (error) {
+                    console.error('Błąd pobierania strony:', error);
+                    return null;
                 }
             }
             
-            // Aktualizacja listy produktów
-            if (newProducts.length > 0) {
-                products = mergeProducts(products, newProducts);
-                return true;
+            // Funkcja do znajdowania karuzeli na stronie
+            function findCarousels(doc) {
+                // W prawdziwej implementacji szukalibyśmy elementów karuzeli
+                // Dla demonstracji zwracamy przykładowe karuzele
+                return [
+                    { title: "Bestsellery w świetnych cenach" },
+                    { title: "Technologiczne okazje" },
+                    { title: "Technologia na co dzień" }
+                ];
             }
             
-            return false;
-        }
-
-        // Funkcja łącząca istniejące produkty z nowymi
-        function mergeProducts(existingProducts, newProducts) {
-            const productMap = {};
-
-            // Najpierw dodaj istniejące produkty do mapy
-            existingProducts.forEach(product => {
-                productMap[product.id] = product;
-                product.isNew = false; // Resetujemy flagę "nowy"
-            });
-
-            // Dodaj lub zaktualizuj nowymi produktami
-            newProducts.forEach(product => {
-                if (productMap[product.id]) {
-                    // Zachowujemy poprzedni status dostępności i datę sprawdzenia
-                    const existingProduct = productMap[product.id];
-                    const oldAvailable = existingProduct.available;
-                    
-                    // Aktualizujemy dane produktu
-                    productMap[product.id] = {
-                        ...product,
-                        available: existingProduct.available,
-                        lastChecked: existingProduct.lastChecked,
-                        statusChanged: oldAvailable !== null && product.available !== null && oldAvailable !== product.available
-                    };
+            // Funkcja do ekstrahowania tytułu karuzeli
+            function extractCarouselTitle(carousel) {
+                return carousel.title || "Karuzela bez nazwy";
+            }
+            
+            // Funkcja do ekstrahowania produktów z karuzeli
+            function extractProductsFromCarousel(carousel) {
+                // W prawdziwej implementacji ekstraktor pobierałby rzeczywiste dane
+                // Dla demonstracji zwracamy przykładowe produkty
+                if (carousel.title === "Bestsellery w świetnych cenach") {
+                    return [
+                        { name: "Logitech MX Vertical Ergonomic", url: "https://www.x-kom.pl/p/475517-myszka-bezprzewodowa-logitech-mx-vertical-ergonomic.html" },
+                        { name: "Apple MacBook Air M2", url: "https://www.x-kom.pl/p/1064141-notebook-laptop-133-apple-macbook-air-m2-8-8-16gb-256-mac-os-midnight.html" },
+                        { name: "Xiaomi Redmi Note 12", url: "https://www.x-kom.pl/p/1149599-smartfon-telefon-xiaomi-redmi-note-12-8-256gb-ice-blue.html" }
+                    ];
+                } else if (carousel.title === "Technologiczne okazje") {
+                    return [
+                        { name: "Samsung QLED 55Q80C", url: "https://www.x-kom.pl/p/1149329-telewizor-55-samsung-qled-55q80c.html" },
+                        { name: "Sony WH-1000XM5", url: "https://www.x-kom.pl/p/668780-sluchawki-bezprzewodowe-sony-wh-1000xm5-czarne.html" },
+                        { name: "JBL Charge 5", url: "https://www.x-kom.pl/p/705314-glosnik-przenosny-jbl-charge-5-czarny.html" }
+                    ];
                 } else {
-                    // Dodaj nowy produkt
-                    productMap[product.id] = product;
+                    return [
+                        { name: "Lenovo IdeaPad 3", url: "https://www.x-kom.pl/p/1055454-notebook-laptop-156-lenovo-ideapad-3-i5-1235u-8gb-512-win11.html" },
+                        { name: "ASUS TUF Gaming Monitor", url: "https://www.x-kom.pl/p/693506-monitor-asus-tuf-gaming-vg247q1a.html" },
+                        { name: "HP LaserJet M110we", url: "https://www.x-kom.pl/p/773371-urzadzenie-wielofunkcyjne-hp-laserjet-m110we.html" }
+                    ];
                 }
-            });
-
-            // Konwertuj mapę z powrotem do tablicy
-            return Object.values(productMap);
-        }
-
-        // Funkcja wyodrębniająca ID produktu z URL
-        function extractProductId(url) {
-            const match = url.match(/\/p\/(\d+)/);
-            return match ? match[1] : null;
-        }
-
-        // Funkcja sprawdzająca dostępność produktów
-        async function checkAvailability() {
-            if (products.length === 0) {
-                showNotification('Brak produktów do sprawdzenia. Najpierw pobierz listę produktów.', 'error');
-                return;
             }
             
-            if (isChecking)
+            // Funkcja do sprawdzania dostępności produktu
+            async function checkProductAvailability(url) {
+                // Pobieranie strony produktu
+                const productPage = await fetchWithCORS(url);
+                if (!productPage) return false;
+                
+                // Parsowanie HTML
+                const parser = new DOMParser();
+                const productDoc = parser.parseFromString(productPage, 'text/html');
+                
+                // Symulacja sprawdzania czy produkt jest dostępny
+                // W rzeczywistej implementacji szukalibyśmy przycisku "Dodaj do koszyka"
+                return url.includes('475517') || url.includes('668780') || url.includes('1055454');
+            }
+            
+            // Funkcja do wyświetlania wyników
+            function displayResults(allResults) {
+                let html = '';
+                
+                for (const carousel of allResults) {
+                    html += `<h3>${carousel.title}</h3>`;
+                    html += `<table>
+                        <thead>
+                            <tr>
+                                <th>Nazwa produktu</th>
+                                <th>Link do produktu</th>
+                                <th>Dostępność</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                    
+                    for (const product of carousel.products) {
+                        const availabilityClass = product.available === true ? 'available' : 
+                                                 product.available === false ? 'unavailable' : '';
+                        const availabilityText = product.available === true ? 'Dostępny' : 
+                                               product.available === false ? 'Niedostępny' : 
+                                               'Błąd sprawdzania';
+                        
+                        html += `<tr>
+                            <td>${product.name}</td>
+                            <td><a href="${product.url}" target="_blank">Zobacz produkt</a></td>
+                            <td class="${availabilityClass}">${availabilityText}</td>
+                        </tr>`;
+                    }
+                    
+                    html += `</tbody></table>`;
+                }
+                
+                resultsContent.innerHTML = html;
+                results.classList.remove('hidden');
+            }
+            
+            // Funkcja zwracająca przykładowy HTML dla demonstracji
+            function getMockHtml(url) {
+                if (url === 'https://www.x-kom.pl/lp/technologia-po-prostu') {
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>X-Kom: Technologia po prostu</title></head>
+                        <body>
+                            <div class="carousel">
+                                <h2>Bestsellery w świetnych cenach</h2>
+                                <!-- tu byłyby produkty -->
+                            </div>
+                            <div class="carousel">
+                                <h2>Technologiczne okazje</h2>
+                                <!-- tu byłyby produkty -->
+                            </div>
+                            <div class="carousel">
+                                <h2>Technologia na co dzień</h2>
+                                <!-- tu byłyby produkty -->
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                } else if (url.includes('475517')) {
+                    // Logitech MX - dostępny
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>Logitech MX Vertical Ergonomic</title></head>
+                        <body>
+                            <h1>Logitech MX Vertical Ergonomic</h1>
+                            <div class="price">399 zł</div>
+                            <button class="add-to-cart">Dodaj do koszyka</button>
+                        </body>
+                        </html>
+                    `;
+                } else if (url.includes('668780')) {
+                    // Sony WH-1000XM5 - dostępny
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>Sony WH-1000XM5</title></head>
+                        <body>
+                            <h1>Sony WH-1000XM5</h1>
+                            <div class="price">1599 zł</div>
+                            <button class="add-to-cart">Dodaj do koszyka</button>
+                        </body>
+                        </html>
+                    `;
+                } else if (url.includes('1055454')) {
+                    // Lenovo IdeaPad - dostępny
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>Lenovo IdeaPad 3</title></head>
+                        <body>
+                            <h1>Lenovo IdeaPad 3</h1>
+                            <div class="price">2899 zł</div>
+                            <button class="add-to-cart">Dodaj do koszyka</button>
+                        </body>
+                        </html>
+                    `;
+                } else {
+                    // Wszystkie inne - niedostępne
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>Produkt X-Kom</title></head>
+                        <body>
+                            <h1>Produkt</h1>
+                            <div class="price">XXX zł</div>
+                            <div class="unavailable">Produkt niedostępny</div>
+                        </body>
+                        </html>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -144,13 +144,15 @@
         }
 
         .spinner {
-            border: 3px solid rgba(0, 0, 0, 0.1);
-            width: 18px;
-            height: 18px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            border-left-color: #ffffff;
+            border-left-color: #0066cc;
             animation: spin 1s linear infinite;
             display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
         }
 
         @keyframes spin {
@@ -353,10 +355,7 @@
             font-size: 0.9em;
         }
 
-        .header-logo {
-            height: 40px;
-            margin-right: 10px;
-        }
+
 
         .product-image {
             width: 50px;
@@ -378,10 +377,7 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center;">
-            <svg class="header-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122 30" fill="#0082fa">
-                <path d="M32.2,14.6h15.5v3.4H36.3v2.4h10.8v3.4H36.3v4.8h-4.1V14.6z M92.1,14.6h4.1v14h-4.1V14.6z M53.5,14.6h4.1v10.6h7.7v3.4H53.5V14.6z M67.3,14.6h12.8v3.4h-8.7v2h8.1v3.2h-8.1v2h8.9v3.4H67.3V14.6z M50.9,3.2l-2.7,2.7H102v-2.7H50.9z M112.2,11.7l-6.8,16.9h4.3l1.1-2.8h7.1l1.1,2.8h4.3l-6.8-16.9H112.2z M112.2,22.5l2-5.1l2,5.1H112.2z M97.5,11.7l4.1,5.8l4.1-5.8h4.6l-6.4,8.9v8h-4.5v-8l-6.4-8.9H97.5z M19.5,0L0,19.5L19.5,39l19.5-19.5L19.5,0z"/>
-            </svg>
-            <h1>Monitor Dostępności Produktów</h1>
+            <h1>Monitor Dostępności Produktów x-kom</h1>
         </div>
     </div>
 
@@ -397,10 +393,8 @@
             <input type="text" id="urlInput" 
                 placeholder="URL strony z produktami (np. https://www.x-kom.pl/lp/technologia-po-prostu)" 
                 value="https://www.x-kom.pl/lp/technologia-po-prostu">
-            <button id="fetchProductsButton">
-                <span id="fetchSpinner" class="spinner hidden"></span>
-                <span>Pobierz produkty</span>
-            </button>
+            <button id="fetchProductsButton">Pobierz produkty</button>
+            <span id="fetchSpinner" class="spinner hidden"></span>
         </div>
     </div>
 
@@ -435,10 +429,8 @@
     </div>
 
     <div class="controls">
-        <button id="checkNowButton">
-            <span id="checkSpinner" class="spinner hidden"></span>
-            <span>Sprawdź dostępność teraz</span>
-        </button>
+        <button id="checkNowButton">Sprawdź dostępność teraz</button>
+        <span id="checkSpinner" class="spinner hidden"></span>
         <button id="clearDataButton">
             Wyczyść dane
         </button>

@@ -129,6 +129,17 @@
             border-left: 4px solid #ffd600;
             margin-top: 20px;
         }
+        .proxy-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .settings {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -136,11 +147,21 @@
     
     <div class="description">
         <h2>O narzędziu</h2>
-        <p>To narzędzie sprawdza dostępność produktów z promocyjnych karuzeli na stronie X-Kom. Dla każdego produktu narzędzie odwiedza jego kartę produktową i sprawdza, czy ma aktywny przycisk "Dodaj do koszyka" - jeśli tak, produkt jest dostępny, jeśli nie - produkt jest niedostępny.</p>
-        <p>Wyniki są prezentowane w formie przejrzystej tabeli z podziałem na sekcje odpowiadające karuzelom na stronie głównej.</p>
+        <p>To narzędzie sprawdza dostępność produktów na stronie <a href="https://www.x-kom.pl/lp/technologia-po-prostu" target="_blank">X-Kom: Technologia po prostu</a>. Dla każdego produktu narzędzie odwiedza jego kartę produktową i sprawdza, czy ma aktywny przycisk "Dodaj do koszyka" - jeśli tak, produkt jest dostępny, jeśli nie - produkt jest niedostępny.</p>
+        <p>Wyniki są prezentowane w formie przejrzystej tabeli z podziałem na sekcje odpowiadające karuzelom na stronie promocyjnej.</p>
+        
+        <div class="notes">
+            <p><strong>Uwaga dotycząca CORS:</strong> Ze względu na zabezpieczenia przeglądarek (CORS), do działania narzędzia potrzebny jest serwer proxy. Możesz użyć jednego z publicznych serwisów proxy CORS lub skonfigurować własny.</p>
+        </div>
     </div>
     
     <div class="actions">
+        <div class="settings">
+            <label for="proxyUrl"><strong>Adres serwera proxy CORS:</strong></label>
+            <input type="text" id="proxyUrl" class="proxy-input" placeholder="https://corsproxy.io/?" value="https://corsproxy.io/?">
+            <p>Format: https://corsproxy.io/?{targetUrl} lub https://twoj-serwer-proxy/{targetUrl}</p>
+        </div>
+        
         <button id="checkButton">Sprawdź dostępność produktów</button>
         <div id="loader" class="loader"></div>
         <div id="status" class="status"></div>
@@ -158,12 +179,14 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkButton = document.getElementById('checkButton');
+            const proxyInput = document.getElementById('proxyUrl');
             const loader = document.getElementById('loader');
             const status = document.getElementById('status');
             const results = document.getElementById('results');
             const resultsContent = document.getElementById('resultsContent');
             const errorDiv = document.getElementById('error');
             
+            // Główna funkcja uruchamiająca sprawdzanie
             checkButton.addEventListener('click', async function() {
                 // Reset UI
                 checkButton.disabled = true;
@@ -174,13 +197,18 @@
                 errorDiv.textContent = '';
                 
                 try {
+                    const proxyUrl = proxyInput.value.trim();
+                    if (!proxyUrl) {
+                        throw new Error('Podaj adres serwera proxy CORS');
+                    }
+                    
                     // Pobranie głównej strony z karuzelami
-                    status.textContent = 'Analizowanie strony głównej z produktami...';
+                    status.textContent = 'Analizowanie strony promocyjnej...';
                     const mainPageUrl = 'https://www.x-kom.pl/lp/technologia-po-prostu';
-                    const mainPageResponse = await fetchWithCORS(mainPageUrl);
+                    const mainPageResponse = await fetchWithProxy(mainPageUrl, proxyUrl);
                     
                     if (!mainPageResponse) {
-                        throw new Error('Nie udało się pobrać strony głównej. Spróbuj ponownie później.');
+                        throw new Error('Nie udało się pobrać strony głównej. Sprawdź adres proxy lub spróbuj ponownie później.');
                     }
                     
                     // Parsowanie HTML strony głównej
@@ -192,7 +220,7 @@
                     status.textContent = `Znaleziono ${carousels.length} karuzeli z produktami.`;
                     
                     if (carousels.length === 0) {
-                        throw new Error('Nie znaleziono karuzeli z produktami na stronie.');
+                        throw new Error('Nie znaleziono karuzeli z produktami na stronie. Struktura strony mogła ulec zmianie.');
                     }
                     
                     // Tablice na wyniki dla każdej karuzeli
@@ -206,6 +234,14 @@
                         
                         status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} (${products.length} produktów)...`;
                         
+                        if (products.length === 0) {
+                            allResults.push({
+                                title: carouselTitle,
+                                products: []
+                            });
+                            continue;
+                        }
+                        
                         // Sprawdzanie każdego produktu w karuzeli
                         const carouselResults = [];
                         
@@ -214,8 +250,11 @@
                             status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} - produkt ${j+1}/${products.length}`;
                             
                             try {
+                                // Dodanie opóźnienia, aby uniknąć przeciążenia serwera
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                
                                 // Sprawdzanie dostępności produktu
-                                const isAvailable = await checkProductAvailability(product.url);
+                                const isAvailable = await checkProductAvailability(product.url, proxyUrl);
                                 carouselResults.push({
                                     name: product.name,
                                     url: product.url,
@@ -253,80 +292,222 @@
                 }
             });
             
-            // Funkcja do pobierania strony przez CORS Anywhere proxy
-            async function fetchWithCORS(url) {
+            // Funkcja do pobierania strony przez proxy CORS
+            async function fetchWithProxy(url, proxyUrl) {
                 try {
-                    // Tutaj w prawdziwym środowisku użylibyśmy proxy CORS
-                    // W demonstracyjnej wersji zwracamy przykładowe dane
-                    return getMockHtml(url);
+                    const response = await fetch(`${proxyUrl}${encodeURIComponent(url)}`);
+                    if (!response.ok) {
+                        throw new Error(`Błąd HTTP: ${response.status}`);
+                    }
+                    return await response.text();
                 } catch (error) {
                     console.error('Błąd pobierania strony:', error);
-                    return null;
+                    throw new Error(`Nie udało się pobrać strony: ${error.message}`);
                 }
             }
             
             // Funkcja do znajdowania karuzeli na stronie
             function findCarousels(doc) {
-                // W prawdziwej implementacji szukalibyśmy elementów karuzeli
-                // Dla demonstracji zwracamy przykładowe karuzele
-                return [
-                    { title: "Bestsellery w świetnych cenach" },
-                    { title: "Technologiczne okazje" },
-                    { title: "Technologia na co dzień" }
+                // Wyszukiwanie sekcji z karuzelami na stronie X-Kom
+                const carousels = [];
+                
+                // Spróbujmy kilka możliwych selektorów dla karuzeli
+                const possibleCarouselSelectors = [
+                    'section.sc-9e8d2f34-1', // Typowy selektor dla sekcji na x-kom
+                    'div[data-name="landing-sections"] > section', // Alternatywny selektor
+                    'div.carousel', // Ogólny selektor
+                    'section.container', // Jeszcze inny możliwy selektor
+                    'section' // Ostateczny fallback
                 ];
+                
+                for (const selector of possibleCarouselSelectors) {
+                    const elements = doc.querySelectorAll(selector);
+                    if (elements && elements.length > 0) {
+                        for (let i = 0; i < elements.length; i++) {
+                            carousels.push(elements[i]);
+                        }
+                        break; // Znaleziono pasujące elementy, przerywamy pętlę
+                    }
+                }
+                
+                return carousels;
             }
             
             // Funkcja do ekstrahowania tytułu karuzeli
             function extractCarouselTitle(carousel) {
-                return carousel.title || "Karuzela bez nazwy";
+                // Próbujemy różne selektory dla nagłówka
+                const headingSelectors = [
+                    'h2', 'h3', 'h4', '.section-title', '.title', '[data-testid="section-title"]'
+                ];
+                
+                for (const selector of headingSelectors) {
+                    const headingElement = carousel.querySelector(selector);
+                    if (headingElement && headingElement.textContent.trim()) {
+                        return headingElement.textContent.trim();
+                    }
+                }
+                
+                return "Sekcja bez nazwy";
             }
             
             // Funkcja do ekstrahowania produktów z karuzeli
             function extractProductsFromCarousel(carousel) {
-                // W prawdziwej implementacji ekstraktor pobierałby rzeczywiste dane
-                // Dla demonstracji zwracamy przykładowe produkty
-                if (carousel.title === "Bestsellery w świetnych cenach") {
-                    return [
-                        { name: "Logitech MX Vertical Ergonomic", url: "https://www.x-kom.pl/p/475517-myszka-bezprzewodowa-logitech-mx-vertical-ergonomic.html" },
-                        { name: "Apple MacBook Air M2", url: "https://www.x-kom.pl/p/1064141-notebook-laptop-133-apple-macbook-air-m2-8-8-16gb-256-mac-os-midnight.html" },
-                        { name: "Xiaomi Redmi Note 12", url: "https://www.x-kom.pl/p/1149599-smartfon-telefon-xiaomi-redmi-note-12-8-256gb-ice-blue.html" }
-                    ];
-                } else if (carousel.title === "Technologiczne okazje") {
-                    return [
-                        { name: "Samsung QLED 55Q80C", url: "https://www.x-kom.pl/p/1149329-telewizor-55-samsung-qled-55q80c.html" },
-                        { name: "Sony WH-1000XM5", url: "https://www.x-kom.pl/p/668780-sluchawki-bezprzewodowe-sony-wh-1000xm5-czarne.html" },
-                        { name: "JBL Charge 5", url: "https://www.x-kom.pl/p/705314-glosnik-przenosny-jbl-charge-5-czarny.html" }
-                    ];
-                } else {
-                    return [
-                        { name: "Lenovo IdeaPad 3", url: "https://www.x-kom.pl/p/1055454-notebook-laptop-156-lenovo-ideapad-3-i5-1235u-8gb-512-win11.html" },
-                        { name: "ASUS TUF Gaming Monitor", url: "https://www.x-kom.pl/p/693506-monitor-asus-tuf-gaming-vg247q1a.html" },
-                        { name: "HP LaserJet M110we", url: "https://www.x-kom.pl/p/773371-urzadzenie-wielofunkcyjne-hp-laserjet-m110we.html" }
-                    ];
+                const products = [];
+                
+                // Próbujemy różne selektory dla elementów produktów
+                const productSelectors = [
+                    'a[href^="/p/"]', // Linki do kart produktowych
+                    'div[data-testid="product-card"]', // Karty produktów
+                    'li.carousel-item', // Elementy karuzeli
+                    'div.sc-1pwfe6b-3' // Inny możliwy selektor
+                ];
+                
+                // Przeszukujemy po kolei różne selektory
+                for (const selector of productSelectors) {
+                    const productElements = carousel.querySelectorAll(selector);
+                    
+                    if (productElements && productElements.length > 0) {
+                        for (let i = 0; i < productElements.length; i++) {
+                            const productElement = productElements[i];
+                            
+                            // Szukamy linku do produktu
+                            let productLink;
+                            if (productElement.tagName === 'A') {
+                                productLink = productElement;
+                            } else {
+                                productLink = productElement.querySelector('a[href^="/p/"]');
+                            }
+                            
+                            if (productLink && productLink.href) {
+                                let url = productLink.href;
+                                
+                                // Upewnij się, że URL jest absolutny
+                                if (url.startsWith('/')) {
+                                    url = `https://www.x-kom.pl${url}`;
+                                }
+                                
+                                // Szukamy nazwy produktu
+                                const nameElements = [
+                                    productElement.querySelector('[data-testid="product-name"]'),
+                                    productElement.querySelector('.product-name'),
+                                    productElement.querySelector('h3'),
+                                    productElement.querySelector('h4'),
+                                    productElement.querySelector('.title'),
+                                    productLink // Sam link może zawierać tekst z nazwą
+                                ].filter(Boolean); // Filtrujemy null/undefined
+                                
+                                let name = "";
+                                for (const el of nameElements) {
+                                    if (el && el.textContent.trim()) {
+                                        name = el.textContent.trim();
+                                        break;
+                                    }
+                                }
+                                
+                                // Jeśli nie znaleziono nazwy, wyciągnij ją z URL
+                                if (!name) {
+                                    // Spróbuj wyciągnąć nazwę z URL
+                                    const urlParts = url.split('/');
+                                    const lastPart = urlParts[urlParts.length - 1];
+                                    name = lastPart.split('-').slice(1).join(' '); // Usuń ID produktu, połącz słowa
+                                    name = name.replace('.html', '').trim();
+                                    
+                                    if (!name) {
+                                        name = `Produkt ${i+1}`;
+                                    }
+                                }
+                                
+                                products.push({
+                                    name: name,
+                                    url: url
+                                });
+                            }
+                        }
+                        
+                        // Jeśli znaleźliśmy produkty, przerywamy pętlę
+                        if (products.length > 0) {
+                            break;
+                        }
+                    }
                 }
+                
+                return products;
             }
             
             // Funkcja do sprawdzania dostępności produktu
-            async function checkProductAvailability(url) {
-                // Pobieranie strony produktu
-                const productPage = await fetchWithCORS(url);
-                if (!productPage) return false;
-                
-                // Parsowanie HTML
-                const parser = new DOMParser();
-                const productDoc = parser.parseFromString(productPage, 'text/html');
-                
-                // Symulacja sprawdzania czy produkt jest dostępny
-                // W rzeczywistej implementacji szukalibyśmy przycisku "Dodaj do koszyka"
-                return url.includes('475517') || url.includes('668780') || url.includes('1055454');
+            async function checkProductAvailability(url, proxyUrl) {
+                try {
+                    // Pobieranie strony produktu
+                    const productPage = await fetchWithProxy(url, proxyUrl);
+                    if (!productPage) return false;
+                    
+                    // Parsowanie HTML
+                    const parser = new DOMParser();
+                    const productDoc = parser.parseFromString(productPage, 'text/html');
+                    
+                    // Sprawdzenie czy produkt jest dostępny - szukanie przycisku "Dodaj do koszyka"
+                    const availabilitySelectors = [
+                        'button[data-testid="add-to-cart-button"]',
+                        'button.add-to-cart',
+                        'button.sc-1hdxfw1-1',
+                        'button[data-name="addToCartButton"]',
+                        'button.addToCartButton',
+                        'button.green' // Często zielony przycisk oznacza możliwość dodania do koszyka
+                    ];
+                    
+                    for (const selector of availabilitySelectors) {
+                        const button = productDoc.querySelector(selector);
+                        if (button) {
+                            // Sprawdź, czy przycisk nie jest wyłączony
+                            const isDisabled = button.hasAttribute('disabled') || 
+                                              button.classList.contains('disabled') ||
+                                              button.getAttribute('aria-disabled') === 'true';
+                            if (!isDisabled) {
+                                return true; // Produkt jest dostępny
+                            }
+                        }
+                    }
+                    
+                    // Sprawdź, czy istnieje tekst o niedostępności
+                    const unavailabilitySelectors = [
+                        '.unavailable',
+                        '[data-testid="product-unavailable"]',
+                        '.product-unavailable',
+                        '.out-of-stock'
+                    ];
+                    
+                    for (const selector of unavailabilitySelectors) {
+                        const element = productDoc.querySelector(selector);
+                        if (element) {
+                            return false; // Produkt jest niedostępny
+                        }
+                    }
+                    
+                    // Jeśli nie znaleziono przycisku "Dodaj do koszyka" i nie ma wyraźnej informacji o niedostępności,
+                    // zakładamy, że produkt jest niedostępny
+                    return false;
+                    
+                } catch (error) {
+                    console.error('Błąd sprawdzania dostępności:', error);
+                    throw error;
+                }
             }
             
             // Funkcja do wyświetlania wyników
             function displayResults(allResults) {
                 let html = '';
+                let totalAvailable = 0;
+                let totalUnavailable = 0;
+                let totalProducts = 0;
                 
                 for (const carousel of allResults) {
                     html += `<h3>${carousel.title}</h3>`;
+                    
+                    if (carousel.products.length === 0) {
+                        html += '<p>Nie znaleziono produktów w tej sekcji.</p>';
+                        continue;
+                    }
+                    
                     html += `<table>
                         <thead>
                             <tr>
@@ -349,91 +530,24 @@
                             <td><a href="${product.url}" target="_blank">Zobacz produkt</a></td>
                             <td class="${availabilityClass}">${availabilityText}</td>
                         </tr>`;
+                        
+                        if (product.available === true) totalAvailable++;
+                        if (product.available === false) totalUnavailable++;
+                        totalProducts++;
                     }
                     
                     html += `</tbody></table>`;
                 }
                 
+                html += `<div class="summary">
+                    <h3>Podsumowanie</h3>
+                    <p>Łącznie sprawdzono: ${totalProducts} produktów</p>
+                    <p>Dostępne: ${totalAvailable} produktów</p>
+                    <p>Niedostępne: ${totalUnavailable} produktów</p>
+                </div>`;
+                
                 resultsContent.innerHTML = html;
                 results.classList.remove('hidden');
-            }
-            
-            // Funkcja zwracająca przykładowy HTML dla demonstracji
-            function getMockHtml(url) {
-                if (url === 'https://www.x-kom.pl/lp/technologia-po-prostu') {
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head><title>X-Kom: Technologia po prostu</title></head>
-                        <body>
-                            <div class="carousel">
-                                <h2>Bestsellery w świetnych cenach</h2>
-                                <!-- tu byłyby produkty -->
-                            </div>
-                            <div class="carousel">
-                                <h2>Technologiczne okazje</h2>
-                                <!-- tu byłyby produkty -->
-                            </div>
-                            <div class="carousel">
-                                <h2>Technologia na co dzień</h2>
-                                <!-- tu byłyby produkty -->
-                            </div>
-                        </body>
-                        </html>
-                    `;
-                } else if (url.includes('475517')) {
-                    // Logitech MX - dostępny
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head><title>Logitech MX Vertical Ergonomic</title></head>
-                        <body>
-                            <h1>Logitech MX Vertical Ergonomic</h1>
-                            <div class="price">399 zł</div>
-                            <button class="add-to-cart">Dodaj do koszyka</button>
-                        </body>
-                        </html>
-                    `;
-                } else if (url.includes('668780')) {
-                    // Sony WH-1000XM5 - dostępny
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head><title>Sony WH-1000XM5</title></head>
-                        <body>
-                            <h1>Sony WH-1000XM5</h1>
-                            <div class="price">1599 zł</div>
-                            <button class="add-to-cart">Dodaj do koszyka</button>
-                        </body>
-                        </html>
-                    `;
-                } else if (url.includes('1055454')) {
-                    // Lenovo IdeaPad - dostępny
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head><title>Lenovo IdeaPad 3</title></head>
-                        <body>
-                            <h1>Lenovo IdeaPad 3</h1>
-                            <div class="price">2899 zł</div>
-                            <button class="add-to-cart">Dodaj do koszyka</button>
-                        </body>
-                        </html>
-                    `;
-                } else {
-                    // Wszystkie inne - niedostępne
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head><title>Produkt X-Kom</title></head>
-                        <body>
-                            <h1>Produkt</h1>
-                            <div class="price">XXX zł</div>
-                            <div class="unavailable">Produkt niedostępny</div>
-                        </body>
-                        </html>
-                    `;
-                }
             }
         });
     </script>

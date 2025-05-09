@@ -3,553 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-Kom Sprawdzacz Dostępności Produktów</title>
+    <title>x-kom.pl - Scraper produktów</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            color: #333;
             max-width: 1200px;
             margin: 0 auto;
-            background-color: #f7f7f7;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
         h1 {
             color: #00a0e3;
             text-align: center;
-            margin-bottom: 10px;
         }
         h2 {
-            color: #3c4043;
+            color: #333;
+            margin-top: 30px;
             border-bottom: 1px solid #ddd;
             padding-bottom: 10px;
-            margin-top: 30px;
-        }
-        .description {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        .actions {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            text-align: center;
         }
         button {
             background-color: #00a0e3;
             color: white;
             border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            margin: 20px 0;
             cursor: pointer;
-            transition: background-color 0.3s;
+            font-size: 16px;
+            border-radius: 5px;
         }
         button:hover {
-            background-color: #0078b3;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .status {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #555;
+            background-color: #0082b9;
         }
         .results {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            overflow: auto;
+            margin-bottom: 20px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        .product-list {
+            list-style-type: none;
+            padding: 0;
         }
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
+        .product-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
         }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+        .product-item:last-child {
+            border-bottom: none;
         }
-        tr:hover {
-            background-color: #f9f9f9;
+        .product-link {
+            color: #1a73e8;
+            text-decoration: none;
         }
-        .available {
-            color: #28a745;
-            font-weight: bold;
+        .product-link:hover {
+            text-decoration: underline;
         }
-        .unavailable {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .section-header {
-            background-color: #eef5f9;
-            font-weight: bold;
-            color: #00a0e3;
-        }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #00a0e3;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none;
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
         }
         .error {
-            color: #dc3545;
+            color: red;
             font-weight: bold;
-            margin-top: 15px;
         }
-        .notes {
-            background-color: #fffde7;
-            padding: 15px;
-            border-left: 4px solid #ffd600;
-            margin-top: 20px;
-        }
-        .proxy-input {
-            width: 100%;
-            padding: 10px;
+        .status {
             margin-top: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f0f0f0;
             border-radius: 4px;
         }
-        .settings {
-            margin-bottom: 15px;
+        .export-btn {
+            background-color: #4CAF50;
+        }
+        .export-btn:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>X-Kom Sprawdzacz Dostępności Produktów</h1>
+    <h1>Pobieranie produktów z x-kom.pl</h1>
+    <p>Ten skrypt pobiera nazwy produktów i linki do kart produktowych z karuzeli na stronie x-kom.pl/lp/technologia-po-prostu.</p>
     
-    <div class="description">
-        <h2>O narzędziu</h2>
-        <p>To narzędzie sprawdza dostępność produktów na stronie <a href="https://www.x-kom.pl/lp/technologia-po-prostu" target="_blank">X-Kom: Technologia po prostu</a>. Dla każdego produktu narzędzie odwiedza jego kartę produktową i sprawdza, czy ma aktywny przycisk "Dodaj do koszyka" - jeśli tak, produkt jest dostępny, jeśli nie - produkt jest niedostępny.</p>
-        <p>Wyniki są prezentowane w formie przejrzystej tabeli z podziałem na sekcje odpowiadające karuzelom na stronie promocyjnej.</p>
-        
-        <div class="notes">
-            <p><strong>Uwaga dotycząca CORS:</strong> Ze względu na zabezpieczenia przeglądarek (CORS), do działania narzędzia potrzebny jest serwer proxy. Możesz użyć jednego z publicznych serwisów proxy CORS lub skonfigurować własny.</p>
-        </div>
-    </div>
+    <button id="startScrapingBtn">Rozpocznij analizę strony</button>
+    <button id="exportBtn" class="export-btn" disabled>Eksportuj do CSV</button>
     
-    <div class="actions">
-        <div class="settings">
-            <label for="proxyUrl"><strong>Adres serwera proxy CORS:</strong></label>
-            <input type="text" id="proxyUrl" class="proxy-input" placeholder="https://corsproxy.io/?" value="https://corsproxy.io/?">
-            <p>Format: https://corsproxy.io/?{targetUrl} lub https://twoj-serwer-proxy/{targetUrl}</p>
-        </div>
-        
-        <button id="checkButton">Sprawdź dostępność produktów</button>
-        <div id="loader" class="loader"></div>
-        <div id="status" class="status"></div>
-        <div id="error" class="error hidden"></div>
-    </div>
-
-    <div id="results" class="results hidden">
-        <h2>Wyniki sprawdzania dostępności</h2>
-        <div id="resultsContent"></div>
-        <div class="notes">
-            <p><strong>Uwaga:</strong> Sprawdzanie dużej liczby produktów może potrwać kilka minut. Prosimy o cierpliwość podczas pobierania danych.</p>
-        </div>
+    <div id="status" class="status" style="display: none;"></div>
+    
+    <div class="results" id="results">
+        <!-- Tutaj będą wyświetlane wyniki -->
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const checkButton = document.getElementById('checkButton');
-            const proxyInput = document.getElementById('proxyUrl');
-            const loader = document.getElementById('loader');
-            const status = document.getElementById('status');
-            const results = document.getElementById('results');
-            const resultsContent = document.getElementById('resultsContent');
-            const errorDiv = document.getElementById('error');
+            const startBtn = document.getElementById('startScrapingBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.getElementById('status');
             
-            // Główna funkcja uruchamiająca sprawdzanie
-            checkButton.addEventListener('click', async function() {
-                // Reset UI
-                checkButton.disabled = true;
-                loader.style.display = 'block';
-                status.textContent = 'Pobieranie danych ze strony X-Kom...';
-                results.classList.add('hidden');
-                errorDiv.classList.add('hidden');
-                errorDiv.textContent = '';
+            // Sekcje, które chcemy analizować
+            const sections = [
+                'Laptopy',
+                'Smartfony',
+                'Polecamy na komunię',
+                'Hity TikToka',
+                'Konsole i desktopy',
+                'Akcesoria i peryferia',
+                'Pojazdy elektryczne',
+                'Drony'
+            ];
+            
+            // Obiekt do przechowywania wyników
+            let scrapedData = {};
+            
+            startBtn.addEventListener('click', async function() {
+                startBtn.disabled = true;
+                resultsDiv.innerHTML = '';
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Rozpoczynam pobieranie danych...';
                 
                 try {
-                    const proxyUrl = proxyInput.value.trim();
-                    if (!proxyUrl) {
-                        throw new Error('Podaj adres serwera proxy CORS');
-                    }
-                    
-                    // Pobranie głównej strony z karuzelami
-                    status.textContent = 'Analizowanie strony promocyjnej...';
-                    const mainPageUrl = 'https://www.x-kom.pl/lp/technologia-po-prostu';
-                    const mainPageResponse = await fetchWithProxy(mainPageUrl, proxyUrl);
-                    
-                    if (!mainPageResponse) {
-                        throw new Error('Nie udało się pobrać strony głównej. Sprawdź adres proxy lub spróbuj ponownie później.');
-                    }
-                    
-                    // Parsowanie HTML strony głównej
-                    const parser = new DOMParser();
-                    const mainPageDoc = parser.parseFromString(mainPageResponse, 'text/html');
-                    
-                    // Znajdowanie wszystkich karuzeli na stronie
-                    const carousels = findCarousels(mainPageDoc);
-                    status.textContent = `Znaleziono ${carousels.length} karuzeli z produktami.`;
-                    
-                    if (carousels.length === 0) {
-                        throw new Error('Nie znaleziono karuzeli z produktami na stronie. Struktura strony mogła ulec zmianie.');
-                    }
-                    
-                    // Tablice na wyniki dla każdej karuzeli
-                    const allResults = [];
-                    
-                    // Dla każdej karuzeli
-                    for (let i = 0; i < carousels.length; i++) {
-                        const carousel = carousels[i];
-                        const carouselTitle = extractCarouselTitle(carousel);
-                        const products = extractProductsFromCarousel(carousel);
-                        
-                        status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} (${products.length} produktów)...`;
-                        
-                        if (products.length === 0) {
-                            allResults.push({
-                                title: carouselTitle,
-                                products: []
-                            });
-                            continue;
+                    // Pobranie strony
+                    statusDiv.textContent = 'Pobieranie strony głównej...';
+                    const response = await fetch('https://www.x-kom.pl/lp/technologia-po-prostu', {
+                        method: 'GET',
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                         }
-                        
-                        // Sprawdzanie każdego produktu w karuzeli
-                        const carouselResults = [];
-                        
-                        for (let j = 0; j < products.length; j++) {
-                            const product = products[j];
-                            status.textContent = `Sprawdzanie karuzeli ${i+1}/${carousels.length}: ${carouselTitle} - produkt ${j+1}/${products.length}`;
-                            
-                            try {
-                                // Dodanie opóźnienia, aby uniknąć przeciążenia serwera
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                                
-                                // Sprawdzanie dostępności produktu
-                                const isAvailable = await checkProductAvailability(product.url, proxyUrl);
-                                carouselResults.push({
-                                    name: product.name,
-                                    url: product.url,
-                                    available: isAvailable
-                                });
-                            } catch (error) {
-                                console.error(`Błąd sprawdzania produktu ${product.name}:`, error);
-                                carouselResults.push({
-                                    name: product.name,
-                                    url: product.url,
-                                    available: 'error',
-                                    error: error.message
-                                });
-                            }
-                        }
-                        
-                        allResults.push({
-                            title: carouselTitle,
-                            products: carouselResults
-                        });
-                    }
+                    });
                     
-                    // Wyświetlanie wyników
-                    displayResults(allResults);
-                    status.textContent = 'Sprawdzanie zakończone!';
-                    
-                } catch (error) {
-                    console.error('Wystąpił błąd:', error);
-                    errorDiv.textContent = `Błąd: ${error.message}`;
-                    errorDiv.classList.remove('hidden');
-                    status.textContent = 'Wystąpił błąd podczas sprawdzania.';
-                } finally {
-                    loader.style.display = 'none';
-                    checkButton.disabled = false;
-                }
-            });
-            
-            // Funkcja do pobierania strony przez proxy CORS
-            async function fetchWithProxy(url, proxyUrl) {
-                try {
-                    const response = await fetch(`${proxyUrl}${encodeURIComponent(url)}`);
                     if (!response.ok) {
                         throw new Error(`Błąd HTTP: ${response.status}`);
                     }
-                    return await response.text();
-                } catch (error) {
-                    console.error('Błąd pobierania strony:', error);
-                    throw new Error(`Nie udało się pobrać strony: ${error.message}`);
-                }
-            }
-            
-            // Funkcja do znajdowania karuzeli na stronie
-            function findCarousels(doc) {
-                // Wyszukiwanie sekcji z karuzelami na stronie X-Kom
-                const carousels = [];
-                
-                // Spróbujmy kilka możliwych selektorów dla karuzeli
-                const possibleCarouselSelectors = [
-                    'section.sc-9e8d2f34-1', // Typowy selektor dla sekcji na x-kom
-                    'div[data-name="landing-sections"] > section', // Alternatywny selektor
-                    'div.carousel', // Ogólny selektor
-                    'section.container', // Jeszcze inny możliwy selektor
-                    'section' // Ostateczny fallback
-                ];
-                
-                for (const selector of possibleCarouselSelectors) {
-                    const elements = doc.querySelectorAll(selector);
-                    if (elements && elements.length > 0) {
-                        for (let i = 0; i < elements.length; i++) {
-                            carousels.push(elements[i]);
-                        }
-                        break; // Znaleziono pasujące elementy, przerywamy pętlę
-                    }
-                }
-                
-                return carousels;
-            }
-            
-            // Funkcja do ekstrahowania tytułu karuzeli
-            function extractCarouselTitle(carousel) {
-                // Próbujemy różne selektory dla nagłówka
-                const headingSelectors = [
-                    'h2', 'h3', 'h4', '.section-title', '.title', '[data-testid="section-title"]'
-                ];
-                
-                for (const selector of headingSelectors) {
-                    const headingElement = carousel.querySelector(selector);
-                    if (headingElement && headingElement.textContent.trim()) {
-                        return headingElement.textContent.trim();
-                    }
-                }
-                
-                return "Sekcja bez nazwy";
-            }
-            
-            // Funkcja do ekstrahowania produktów z karuzeli
-            function extractProductsFromCarousel(carousel) {
-                const products = [];
-                
-                // Próbujemy różne selektory dla elementów produktów
-                const productSelectors = [
-                    'a[href^="/p/"]', // Linki do kart produktowych
-                    'div[data-testid="product-card"]', // Karty produktów
-                    'li.carousel-item', // Elementy karuzeli
-                    'div.sc-1pwfe6b-3' // Inny możliwy selektor
-                ];
-                
-                // Przeszukujemy po kolei różne selektory
-                for (const selector of productSelectors) {
-                    const productElements = carousel.querySelectorAll(selector);
                     
-                    if (productElements && productElements.length > 0) {
-                        for (let i = 0; i < productElements.length; i++) {
-                            const productElement = productElements[i];
-                            
-                            // Szukamy linku do produktu
-                            let productLink;
-                            if (productElement.tagName === 'A') {
-                                productLink = productElement;
-                            } else {
-                                productLink = productElement.querySelector('a[href^="/p/"]');
-                            }
-                            
-                            if (productLink && productLink.href) {
-                                let url = productLink.href;
-                                
-                                // Upewnij się, że URL jest absolutny
-                                if (url.startsWith('/')) {
-                                    url = `https://www.x-kom.pl${url}`;
-                                }
-                                
-                                // Szukamy nazwy produktu
-                                const nameElements = [
-                                    productElement.querySelector('[data-testid="product-name"]'),
-                                    productElement.querySelector('.product-name'),
-                                    productElement.querySelector('h3'),
-                                    productElement.querySelector('h4'),
-                                    productElement.querySelector('.title'),
-                                    productLink // Sam link może zawierać tekst z nazwą
-                                ].filter(Boolean); // Filtrujemy null/undefined
-                                
-                                let name = "";
-                                for (const el of nameElements) {
-                                    if (el && el.textContent.trim()) {
-                                        name = el.textContent.trim();
-                                        break;
-                                    }
-                                }
-                                
-                                // Jeśli nie znaleziono nazwy, wyciągnij ją z URL
-                                if (!name) {
-                                    // Spróbuj wyciągnąć nazwę z URL
-                                    const urlParts = url.split('/');
-                                    const lastPart = urlParts[urlParts.length - 1];
-                                    name = lastPart.split('-').slice(1).join(' '); // Usuń ID produktu, połącz słowa
-                                    name = name.replace('.html', '').trim();
-                                    
-                                    if (!name) {
-                                        name = `Produkt ${i+1}`;
-                                    }
-                                }
-                                
-                                products.push({
-                                    name: name,
-                                    url: url
-                                });
-                            }
-                        }
-                        
-                        // Jeśli znaleźliśmy produkty, przerywamy pętlę
-                        if (products.length > 0) {
-                            break;
-                        }
-                    }
-                }
-                
-                return products;
-            }
-            
-            // Funkcja do sprawdzania dostępności produktu
-            async function checkProductAvailability(url, proxyUrl) {
-                try {
-                    // Pobieranie strony produktu
-                    const productPage = await fetchWithProxy(url, proxyUrl);
-                    if (!productPage) return false;
+                    const html = await response.text();
+                    statusDiv.textContent = 'Strona pobrana, analizuję zawartość...';
                     
-                    // Parsowanie HTML
+                    // Tworzymy tymczasowy element DOM, aby przeanalizować HTML
                     const parser = new DOMParser();
-                    const productDoc = parser.parseFromString(productPage, 'text/html');
+                    const doc = parser.parseFromString(html, 'text/html');
                     
-                    // Sprawdzenie czy produkt jest dostępny - szukanie przycisku "Dodaj do koszyka"
-                    const availabilitySelectors = [
-                        'button[data-testid="add-to-cart-button"]',
-                        'button.add-to-cart',
-                        'button.sc-1hdxfw1-1',
-                        'button[data-name="addToCartButton"]',
-                        'button.addToCartButton',
-                        'button.green' // Często zielony przycisk oznacza możliwość dodania do koszyka
-                    ];
-                    
-                    for (const selector of availabilitySelectors) {
-                        const button = productDoc.querySelector(selector);
-                        if (button) {
-                            // Sprawdź, czy przycisk nie jest wyłączony
-                            const isDisabled = button.hasAttribute('disabled') || 
-                                              button.classList.contains('disabled') ||
-                                              button.getAttribute('aria-disabled') === 'true';
-                            if (!isDisabled) {
-                                return true; // Produkt jest dostępny
+                    // Analizujemy każdą sekcję
+                    for (const sectionName of sections) {
+                        statusDiv.textContent = `Analizuję sekcję: ${sectionName}...`;
+                        
+                        // Szukamy sekcji po nagłówku
+                        const headings = Array.from(doc.querySelectorAll('h2, h3, h4'));
+                        const sectionHeading = headings.find(h => h.textContent.includes(sectionName));
+                        
+                        if (sectionHeading) {
+                            // Szukamy najbliższej karuzeli produktów
+                            let sectionElement = sectionHeading.parentElement;
+                            while (sectionElement && !sectionElement.querySelector('.carousel') && 
+                                  !sectionElement.querySelector('[data-testid="product-card"]')) {
+                                sectionElement = sectionElement.parentElement;
                             }
+                            
+                            if (sectionElement) {
+                                // Pobieramy wszystkie karty produktów
+                                const productCards = sectionElement.querySelectorAll('[data-testid="product-card"]');
+                                
+                                // Jeśli znaleźliśmy karty produktów
+                                if (productCards.length > 0) {
+                                    const products = [];
+                                    
+                                    productCards.forEach(card => {
+                                        const linkElement = card.querySelector('a');
+                                        const nameElement = card.querySelector('h3, [data-testid="product-name"]');
+                                        
+                                        if (linkElement && nameElement) {
+                                            const productLink = linkElement.href;
+                                            const productName = nameElement.textContent.trim();
+                                            
+                                            products.push({
+                                                name: productName,
+                                                link: productLink
+                                            });
+                                        }
+                                    });
+                                    
+                                    // Zapisujemy wyniki dla tej sekcji
+                                    scrapedData[sectionName] = products;
+                                    
+                                    // Tworzymy element sekcji w wynikach
+                                    createSectionResultsElement(sectionName, products);
+                                } else {
+                                    createSectionResultsElement(sectionName, [], 'Nie znaleziono produktów w tej sekcji');
+                                }
+                            } else {
+                                createSectionResultsElement(sectionName, [], 'Nie znaleziono karuzeli produktów');
+                            }
+                        } else {
+                            createSectionResultsElement(sectionName, [], 'Nie znaleziono tej sekcji na stronie');
                         }
                     }
                     
-                    // Sprawdź, czy istnieje tekst o niedostępności
-                    const unavailabilitySelectors = [
-                        '.unavailable',
-                        '[data-testid="product-unavailable"]',
-                        '.product-unavailable',
-                        '.out-of-stock'
-                    ];
-                    
-                    for (const selector of unavailabilitySelectors) {
-                        const element = productDoc.querySelector(selector);
-                        if (element) {
-                            return false; // Produkt jest niedostępny
-                        }
+                    // Włączamy przycisk eksportu
+                    if (Object.keys(scrapedData).length > 0) {
+                        exportBtn.disabled = false;
                     }
                     
-                    // Jeśli nie znaleziono przycisku "Dodaj do koszyka" i nie ma wyraźnej informacji o niedostępności,
-                    // zakładamy, że produkt jest niedostępny
-                    return false;
-                    
+                    statusDiv.textContent = 'Analiza zakończona pomyślnie!';
                 } catch (error) {
-                    console.error('Błąd sprawdzania dostępności:', error);
-                    throw error;
+                    console.error('Błąd podczas pobierania danych:', error);
+                    statusDiv.innerHTML = `<span class="error">Wystąpił błąd: ${error.message}</span>`;
+                    
+                    // To jest faza debugowania - wyświetlamy dodatkowe informacje
+                    const debugSection = document.createElement('div');
+                    debugSection.className = 'section';
+                    debugSection.innerHTML = `
+                        <h2>Informacje debugowania</h2>
+                        <p>Napotkano problem podczas analizy strony. Możliwe przyczyny:</p>
+                        <ul>
+                            <li>Strona x-kom mogła zmienić swoją strukturę</li>
+                            <li>Niektóre sekcje mogą nie istnieć lub mieć inną nazwę</li>
+                            <li>Sekcje mogą nie mieć karuzeli produktów</li>
+                            <li>Blokada CORS - strona może nie pozwalać na dostęp z zewnętrznych domen</li>
+                        </ul>
+                        <p>Najbardziej prawdopodobna przyczyna to blokada CORS. W takim przypadku rozwiązaniem byłoby uruchomienie tego kodu po stronie serwera lub stworzenie prostego proxy.</p>
+                    `;
+                    resultsDiv.appendChild(debugSection);
+                } finally {
+                    startBtn.disabled = false;
                 }
+            });
+            
+            // Funkcja tworząca element sekcji wyników
+            function createSectionResultsElement(sectionName, products, errorMsg = null) {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'section';
+                
+                const sectionHeader = document.createElement('h2');
+                sectionHeader.textContent = sectionName;
+                sectionDiv.appendChild(sectionHeader);
+                
+                if (errorMsg) {
+                    const errorP = document.createElement('p');
+                    errorP.className = 'error';
+                    errorP.textContent = errorMsg;
+                    sectionDiv.appendChild(errorP);
+                } else if (products.length === 0) {
+                    const noProductsP = document.createElement('p');
+                    noProductsP.textContent = 'Nie znaleziono produktów w tej sekcji.';
+                    sectionDiv.appendChild(noProductsP);
+                } else {
+                    const productCountP = document.createElement('p');
+                    productCountP.textContent = `Znaleziono ${products.length} produktów:`;
+                    sectionDiv.appendChild(productCountP);
+                    
+                    const productList = document.createElement('ul');
+                    productList.className = 'product-list';
+                    
+                    products.forEach(product => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'product-item';
+                        
+                        const link = document.createElement('a');
+                        link.href = product.link;
+                        link.className = 'product-link';
+                        link.textContent = product.name;
+                        link.target = '_blank';
+                        
+                        listItem.appendChild(link);
+                        productList.appendChild(listItem);
+                    });
+                    
+                    sectionDiv.appendChild(productList);
+                }
+                
+                resultsDiv.appendChild(sectionDiv);
             }
             
-            // Funkcja do wyświetlania wyników
-            function displayResults(allResults) {
-                let html = '';
-                let totalAvailable = 0;
-                let totalUnavailable = 0;
-                let totalProducts = 0;
+            // Obsługa eksportu do CSV
+            exportBtn.addEventListener('click', function() {
+                let csvContent = 'data:text/csv;charset=utf-8,Sekcja,Nazwa produktu,Link\n';
                 
-                for (const carousel of allResults) {
-                    html += `<h3>${carousel.title}</h3>`;
-                    
-                    if (carousel.products.length === 0) {
-                        html += '<p>Nie znaleziono produktów w tej sekcji.</p>';
-                        continue;
-                    }
-                    
-                    html += `<table>
-                        <thead>
-                            <tr>
-                                <th>Nazwa produktu</th>
-                                <th>Link do produktu</th>
-                                <th>Dostępność</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-                    
-                    for (const product of carousel.products) {
-                        const availabilityClass = product.available === true ? 'available' : 
-                                                 product.available === false ? 'unavailable' : '';
-                        const availabilityText = product.available === true ? 'Dostępny' : 
-                                               product.available === false ? 'Niedostępny' : 
-                                               'Błąd sprawdzania';
+                for (const [section, products] of Object.entries(scrapedData)) {
+                    products.forEach(product => {
+                        // Escapowanie pól CSV
+                        const escapedSection = `"${section.replace(/"/g, '""')}"`;
+                        const escapedName = `"${product.name.replace(/"/g, '""')}"`;
+                        const escapedLink = `"${product.link.replace(/"/g, '""')}"`;
                         
-                        html += `<tr>
-                            <td>${product.name}</td>
-                            <td><a href="${product.url}" target="_blank">Zobacz produkt</a></td>
-                            <td class="${availabilityClass}">${availabilityText}</td>
-                        </tr>`;
-                        
-                        if (product.available === true) totalAvailable++;
-                        if (product.available === false) totalUnavailable++;
-                        totalProducts++;
-                    }
-                    
-                    html += `</tbody></table>`;
+                        csvContent += `${escapedSection},${escapedName},${escapedLink}\n`;
+                    });
                 }
                 
-                html += `<div class="summary">
-                    <h3>Podsumowanie</h3>
-                    <p>Łącznie sprawdzono: ${totalProducts} produktów</p>
-                    <p>Dostępne: ${totalAvailable} produktów</p>
-                    <p>Niedostępne: ${totalUnavailable} produktów</p>
-                </div>`;
-                
-                resultsContent.innerHTML = html;
-                results.classList.remove('hidden');
-            }
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', 'x-kom-produkty.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         });
     </script>
+    
+    <div style="margin-top: 40px; padding: 20px; background-color: #fff3cd; border-radius: 5px;">
+        <h3>Uwaga o ograniczeniach</h3>
+        <p>Ten skrypt może nie zadziałać bezpośrednio w przeglądarce ze względu na zasady bezpieczeństwa CORS (Cross-Origin Resource Sharing). 
+           Jeśli napotkasz problem z pobieraniem danych, rozważ następujące rozwiązania:</p>
+        <ol>
+            <li>Użycie dodatku do przeglądarki, który wyłącza ograniczenia CORS (np. "CORS Unblock" dla Chrome)</li>
+            <li>Uruchomienie tego kodu po stronie serwera (np. Node.js z biblioteką Axios lub Fetch)</li>
+            <li>Stworzenie prostego serwera proxy, który pośredniczy w żądaniach do x-kom.pl</li>
+            <li>Wykorzystanie gotowych narzędzi do web scraping'u jak Puppeteer lub Selenium</li>
+        </ol>
+    </div>
 </body>
 </html>
